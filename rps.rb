@@ -1,10 +1,13 @@
 #!/usr/bin/ruby -w
 
+# ściągawka:
+# - porównywanie dat: 
+#   wpis['startWorkTime'] < DateTime.strptime('2009-10-14_12:12', '%Y-%m-%d_%H:%M')
+
 require 'date'
 
 wysokoscDiety = 23
-$noAssertSlownie = false
-$rok = 2009
+$rok = 2010
 
 wpisy = Array.new
 
@@ -21,11 +24,7 @@ File.open("rok_#{$rok}.txt", "r") do |infile|
 
     if wpis['srodekTransportu'] == "-"
       wpis['kosztyPodrozy'] = 0.0
-      if wpis['startWorkTime'] < DateTime.strptime('2009-10-14_12:12', '%Y-%m-%d_%H:%M')
-        wpis['srodekTransportu'] = "bus, kolej"
-      else
-        wpis['srodekTransportu'] = "kolej"
-      end
+      wpis['srodekTransportu'] = "kolej"
     else
       wpis['kosztyPodrozy'] = infile.gets.to_f
     end
@@ -43,12 +42,6 @@ File.open("rok_#{$rok}.txt", "r") do |infile|
 end
 
 # --------------------------------------------------------------------------------------------------
-
-$slownie = Hash.new
-$slownie[46] = "czterdzie\\\'sci sze\\\'s\\\'c"
-$slownie[0] = "zero"
-$slownie[92] = "dziewięćdziesiąt dwa"
-$slownie[63] = "sześćdziesiąt trzy"
 
 def napiszSlownieLiczbe(lb)
   if lb == 0
@@ -148,31 +141,15 @@ end
 # --------------------------------------------------------------------------------------------------
 
 podroze = Array.new
-biezacyMiesiac = 0
-nrDW = 0
+biezacyMiesiac = 4
+nrDW = 8
 
 wpisy.each do |wpis|
 
   podroz = Hash.new
 
-  poczatekGodzina = wpis['startWorkTime'].hour() - 2
-  poczatekMinuta = wpis['startWorkTime'].min() - 30
-
-  #poczatekGodzina = 6
-  #poczatekMinuta = 35
-  if wpis['startWorkTime'].hour() < 7
-    poczatekGodzina = 4
-    poczatekMinuta = 50
-  end
-
-  podroz['poczatek'] = DateTime.new(wpis['startWorkTime'].year(), wpis['startWorkTime'].month(), wpis['startWorkTime'].mday(),
-				    poczatekGodzina, poczatekMinuta )
-
-  koniecGodzina = wpis['endWorkTime'].hour() + 3
-  koniecMinuta = wpis['endWorkTime'].min()
-
-  podroz['koniec'] = DateTime.new(wpis['endWorkTime'].year(), wpis['endWorkTime'].month(), wpis['endWorkTime'].mday(),
-				  koniecGodzina, koniecMinuta )
+  podroz['poczatek'] = wpis['startWorkTime']
+  podroz['koniec'] = wpis['endWorkTime']
 
   podroz['data'] = (Date.new(wpis['endWorkTime'].year(), wpis['endWorkTime'].month(), wpis['endWorkTime'].mday())+1)
 
