@@ -11,7 +11,7 @@ $rok = 2010
 
 wpisy = Array.new
 
-File.open("rok_#{$rok}.txt", "r") do |infile|
+File.open("data/rok_#{$rok}.txt", "r") do |infile|
 
   #line = infile.gets
   while (line = infile.gets)
@@ -21,23 +21,27 @@ File.open("rok_#{$rok}.txt", "r") do |infile|
     wpis['startWorkTime'] = DateTime.strptime(infile.gets, '%Y-%m-%d_%H:%M')
     wpis['endWorkTime'] = DateTime.strptime(infile.gets, '%Y-%m-%d_%H:%M')
     wpis['srodekTransportu'] = infile.gets.chop!
+    wpis['miejsce'] = "Warszawy"
+    wpis['cel'] = "praca nad projektem HydraStor dla 9LivesData sp. z o.o. sp. kom."
 
     if wpis['srodekTransportu'] == "-"
       wpis['kosztyPodrozy'] = 0.0
       wpis['srodekTransportu'] = "kolej"
+      wpis['iloscZalacznikow'] = 0
+    elsif wpis['srodekTransportu'] == "--"
+      wpis['plik_z_DW'] = infile.gets.chop!
+      wpis['miejsce'] = infile.gets.chop!
+      wpis['cel'] =  infile.gets.chop!
+      wpis['srodekTransportu'] == infile.gets.chop!
     else
       wpis['kosztyPodrozy'] = infile.gets.to_f
-    end
-
-    if wpis['kosztyPodrozy'] > 0
-       wpis['iloscZalacznikow'] = infile.gets.to_i
-    else
-      wpis['iloscZalacznikow'] = 0
+      wpis['iloscZalacznikow'] = infile.gets.to_i
     end
 
     wpisy << wpis
 
-    #puts "WPIS: #{startWorkTime} - #{endWorkTime}, #{srodekTransportu}, #{iloscZalacznikow}, #{kosztyPodrozy}"
+    puts "WPIS: #{wpis['startWorkTime']} - #{wpis['endWorkTime']}"
+    #, #{srodekTransportu}, #{iloscZalacznikow}, #{kosztyPodrozy}"
   end
 end
 
@@ -189,15 +193,19 @@ wpisy.each do |wpis|
   end
 
   podroz['czas'] = [dni, godzin, minut]
-  podroz['kosztyPrzejazdow'] = wpis['kosztyPodrozy']
-  podroz['transport'] = wpis['srodekTransportu']
-  podroz['iloscZalacznikow'] = wpis['iloscZalacznikow']
-  podroz['koszt'] = podroz['kosztyPrzejazdow'] + podroz['iloscDiet']*wysokoscDiety
+  podroz['miejsce'] = wpis['miejsce']
+  podroz['cel'] = wpis['cel']
 
-  #podroz['poczatek'] += 5.hours
-
+  if wpis.has_key?("plik_z_DW")
+    podroz['plik_z_DW'] = wpis['plik_z_DW']
+  else
+    podroz['kosztyPrzejazdow'] = wpis['kosztyPodrozy']
+    podroz['transport'] = wpis['srodekTransportu']
+    podroz['iloscZalacznikow'] = wpis['iloscZalacznikow']
+    podroz['koszt'] = podroz['kosztyPrzejazdow'] + podroz['iloscDiet']*wysokoscDiety
+  end
   puts "od: #{podroz['poczatek']} do: #{podroz['koniec']}, czas: #{(czasTrwania.to_f*24).to_i} = #{dni} dni #{godzin} h #{minut} min, iloscDiet: #{podroz['iloscDiet']}, ksiegowane: #{podroz['data']}, nr: #{podroz['numer']}"
-
+  
   podroze << podroz
 
 end
@@ -241,29 +249,41 @@ texfile << "\\vspace{20px}\n"
 
 texfile << "\\begin{description}\n"
 texfile << "\\item[Podróż służbową odbył:] Łukasz Ślusarczyk (właściciel)\n"
-texfile << "\\item[do:] Warszawy\n"
-texfile << "\\item[w celu:] praca nad projektem HydraStor dla 9LivesData sp. z o.o. sp. kom.\n"
+texfile << "\\item[do:] #{p['miejsce']}\n"
+texfile << "\\item[w celu:] #{p['cel']}\n"
 texfile << "\\item[wyjazd:] #{p['poczatek'].strftime('%Y-%m-%d %H:%M')}\n"
 texfile << "\\item[powrót:] #{p['koniec'].strftime('%Y-%m-%d %H:%M')}\n"
     dniDzienStr = "dni"
     if p['czas'][0] == 1
       dniDzienStr = "dzień"
     end
-    texfile << "\\item[czas przebywania w podróży:]  #{p['czas'][0]} #{dniDzienStr} #{p['czas'][1]} godzin #{p['czas'][2]} minut\n"
+texfile << "\\item[czas przebywania w podróży:]  #{p['czas'][0]} #{dniDzienStr} #{p['czas'][1]} godzin #{p['czas'][2]} minut\n"
 texfile << "\\item[środek transportu:] #{p['transport']}\n"
 texfile << "\\end{description}\n"
 texfile << "\\vspace{20px}\n"
-
 texfile << "\\begin{description}\n"
-texfile << "\\item[koszty przejazdów nie zaksięgowane w KPiR (wg załączników):] #{piszLiczbe(p['kosztyPrzejazdow'])}\n"
-texfile << "\\item[liczba przysługujących diet:] #{p['iloscDiet']}\n"
-texfile << "\\item[wysokość diety za dobę podróży:] #{wysokoscDiety} zł\n"
-texfile << "\\item[koszt diet:] #{piszLiczbe(p['iloscDiet']*wysokoscDiety)}\n"
-texfile << "\\item[RAZEM do zaksięgowania w KPiR:]  #{piszLiczbe(p['koszt'])}\n"
-texfile << "\\item[słownie:] " << napiszSlownie(p['koszt']) << "\n"
+
+if p.has_key?('plik_z_DW')
+  File.open(p['plik_z_DW'], "r") do |dwFile|
+    texfile << "% wklejenie pliku: #{p['plik_z_DW']} START";
+    puts "wklejanie pliku #{p['plik_z_DW']}"
+    while (dwLine = dwFile.gets)
+      #puts "wczytano #{dwLine}"
+      texfile << dwLine
+    end
+    texfile << "% wklejenie pliku: #{p['plik_z_DW']} KONIEC";    
+  end
+else
+  texfile << "\\item[koszty przejazdów nie zaksięgowane w KPiR (wg załączników):] #{piszLiczbe(p['kosztyPrzejazdow'])}\n"
+  texfile << "\\item[liczba przysługujących diet:] #{p['iloscDiet']}\n"
+  texfile << "\\item[wysokość diety za dobę podróży:] #{wysokoscDiety} zł\n"
+  texfile << "\\item[koszt diet:] #{piszLiczbe(p['iloscDiet']*wysokoscDiety)}\n"
+  texfile << "\\item[RAZEM do zaksięgowania w KPiR:]  #{piszLiczbe(p['koszt'])}\n"
+  texfile << "\\item[słownie:] " << napiszSlownie(p['koszt']) << "\n"
+end
+
 texfile << "\\end{description}\n"
 texfile << "\\vspace{20px}\n"
-
 texfile << "\\begin{description}\n"
 texfile << "\\item[sporządził i zatwierdził:] Łukasz Ślusarczyk\n"
 texfile << "\\item[ilość załączników:] #{p['iloscZalacznikow']}\n"
